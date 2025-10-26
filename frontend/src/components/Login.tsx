@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { buildPath } from "../scripts/build-path"
+import { buildPath } from '../scripts/build-path';
+import { storeToken } from '../scripts/token-storage';
+import { jwtDecode } from 'jwt-decode';
 
 function Login() {
+
   const [message, setMessage] = useState('');
   const [loginName, setLoginName] = React.useState('');
   const [loginPassword, setPassword] = React.useState('');
@@ -13,20 +16,36 @@ function Login() {
     const js = JSON.stringify(obj);
 
     try {
-      const response = await fetch(buildPath("api/login"),
+      const response = await fetch(buildPath('api/login'),
         { method: 'POST', body: js, headers: { 'Content-Type': 'application/json' } });
 
       const res = JSON.parse(await response.text());
 
-      if (res.id <= 0) {
-        setMessage('User/Password combination incorrect');
-      }
-      else {
-        const user = { firstName: res.firstName, lastName: res.lastName, id: res.id }
-        localStorage.setItem('user_data', JSON.stringify(user));
+      const { accessToken } = res;
+      storeToken(res);
 
-        setMessage('');
-        window.location.href = '/cards';
+      const decoded = jwtDecode(accessToken);
+
+      try {
+        const ud = decoded;
+        const userId = ud.iat;
+        const firstName = ud.firstName;
+        const lastName = ud.lastName;
+
+        if (userId <= 0) {
+          setMessage('User/Password combination incorrect');
+        }
+        else {
+          const user = { firstName: firstName, lastName: lastName, id: userId }
+          localStorage.setItem('user_data', JSON.stringify(user));
+
+          setMessage('');
+          window.location.href = '/cards';
+        }
+      }
+      catch (e) {
+        console.log(e);
+        return;
       }
     }
     catch (error: any) {
@@ -46,18 +65,13 @@ function Login() {
   return (
     <div id="loginDiv">
       <span id="inner-title">PLEASE LOG IN</span><br />
-
-      <input type="text" id="loginName" placeholder="Username"
-        onChange={handleSetLoginName} />
-
-      <input type="password" id="loginPassword" placeholder="Password"
+      Login: <input type="text" id="loginName" placeholder="Username"
+        onChange={handleSetLoginName} /><br />
+      Password: <input type="password" id="loginPassword" placeholder="Password"
         onChange={handleSetPassword} />
-
       <input type="submit" id="loginButton" className="buttons" value="Do It"
         onClick={doLogin} />
-
       <span id="loginResult">{message}</span>
-
     </div>
   );
 };

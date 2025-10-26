@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
-import { buildPath } from "../scripts/build-path"
+import { buildPath } from '../scripts/build-path';
+import { retrieveToken, storeToken } from '../scripts/token-storage';
 
 function CardUI() {
-  const _ud: any = localStorage.getItem('user_data');
-  const ud = JSON.parse(_ud);
-  const userId: string = ud.id;
+
   const [message, setMessage] = useState('');
   const [searchResults, setResults] = useState('');
   const [cardList, setCardList] = useState('');
   const [search, setSearchValue] = React.useState('');
   const [card, setCardNameValue] = React.useState('');
 
+  const _ud = localStorage.getItem('user_data');
+  const ud = JSON.parse(String(_ud));
+  const userId = ud.id;
+
   async function addCard(e: any): Promise<void> {
     e.preventDefault();
 
-    const obj = { userId: userId, card: card };
+    const obj = { userId: userId, card: card, jwtToken: retrieveToken() };
     const js = JSON.stringify(obj);
 
     try {
-      const response = await fetch(buildPath("api/addCard"),
+      const response = await fetch(buildPath('api/addcard'),
         { method: 'POST', body: js, headers: { 'Content-Type': 'application/json' } });
 
       const txt = await response.text();
@@ -29,6 +32,7 @@ function CardUI() {
       }
       else {
         setMessage('Card has been added');
+        storeToken(res.jwtToken);
       }
     }
     catch (error: any) {
@@ -39,11 +43,11 @@ function CardUI() {
   async function searchCard(e: any): Promise<void> {
     e.preventDefault();
 
-    const obj = { userId: userId, search: search };
+    const obj = { userId: userId, search: search, jwtToken: retrieveToken() };
     const js = JSON.stringify(obj);
 
     try {
-      const response = await fetch(buildPath("api/searchCards"),
+      const response = await fetch(buildPath('api/searchcards'),
         { method: 'POST', body: js, headers: { 'Content-Type': 'application/json' } });
 
       const txt = await response.text();
@@ -57,6 +61,7 @@ function CardUI() {
         }
       }
       setResults('Card(s) have been retrieved');
+      storeToken(res.jwtToken);
       setCardList(resultText);
     }
     catch (error: any) {
